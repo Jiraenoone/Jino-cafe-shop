@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Admin Portal — Jino Café</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .admin-header {
+      background: var(--coffee-dark);
+      color: white;
+      padding: 18px 0;
+      border-bottom: 3px solid var(--accent-caramel);
+    }
+
+    .admin-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .admin-controls-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin: 24px 0;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .admin-tabs {
+      display: flex;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+    }
+
+    .admin-tab {
+      background: none;
+      border: none;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      transition: all 0.2s;
+    }
+
+    .admin-tab.active {
+      background: var(--coffee-dark);
+      color: white;
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .admin-table th {
+      background: var(--bg-subtle);
+      color: var(--coffee-dark);
+      padding: 12px 16px;
+      font-weight: 700;
+      border-bottom: 2px solid var(--border-light);
+    }
+
+    .admin-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+
+    .admin-table tr:hover {
+      background: var(--bg-warm-tint);
+    }
+
+    .status-select {
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-light);
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      background: white;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Admin Navbar -->
+  <header class="admin-header">
+    <div class="container admin-title-row">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 26px;">☕</span>
+        <div>
+          <h1 style="font-family: var(--font-serif); font-size: 20px;">Jino Café — Barista & Staff Console</h1>
+          <p style="font-size: 12px; opacity: 0.8;">University Cloud-Native Architecture Management</p>
+        </div>
+      </div>
+      <div>
+        <a href="../index.html" style="color: white; text-decoration: none; font-size: 13px; font-weight: 600; background: rgba(255, 255, 255, 0.15); padding: 8px 16px; border-radius: var(--radius-full);">
+          ← Customer Storefront
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="admin-controls-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+        <!-- Tabs -->
+        <div class="admin-tabs" style="margin-bottom: 0;">
+          <button class="admin-tab active" id="tabOrdersBtn" onclick="switchTab('orders')">
+            📦 Incoming Orders
+          </button>
+          <button class="admin-tab" id="tabProductsBtn" onclick="switchTab('products')">
+            📋 Menu Catalog
+          </button>
+        </div>
+
+        <!-- Admin Key Setting -->
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+          <span>Admin Key:</span>
+          <input type="password" id="adminKeyInput" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 12px; width: 140px;" title="Stored securely in browser memory">
+          <button onclick="saveAdminKey()" style="padding: 6px 12px; background: var(--coffee-dark); color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px;">
+            Save
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SECTION: Orders Management ────────────────────── -->
+      <div id="sectionOrders">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <label for="filterOrderStatus" style="font-size: 13px; font-weight: 700;">Filter Status:</label>
+            <select id="filterOrderStatus" class="status-select" onchange="loadAdminOrders()">
+              <option value="">All Orders</option>
+              <option value="PENDING">PENDING</option>
+              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="PREPARING">PREPARING</option>
+              <option value="READY">READY</option>
+              <option value="COMPLETED">COMPLETED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+          </div>
+          <button onclick="loadAdminOrders()" class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;">
+            <span>🔄 Refresh</span>
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Time</th>
+                <th>Customer</th>
+                <th>Items Ordered</th>
+                <th>Total</th>
+                <th>Status Action</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+              <tr><td colspan="6" style="text-align: center;">Loading orders...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── SECTION: Products Management ──────────────────── -->
+      <div id="sectionProducts" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="font-size: 18px; font-weight: 700; color: var(--coffee-dark);">Product Catalog</h2>
+          <button onclick="openNewProductModal()" class="btn-primary" style="width: auto; padding: 8px 18px; font-size: 13px;">
+            <span>+ Add New Product</span>
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Customization Options</th>
+                <th>Availability</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody">
+              <tr><td colspan="6" style="text-align: center;">Loading menu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Product Modal -->
+  <div class="modal-overlay" id="newProductModal">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-body">
+        <h2 class="modal-title" style="margin-bottom: 16px;">Add New Menu Item</h2>
+        <form id="newProductForm">
+          <div class="form-group">
+            <label class="form-label">Category *</label>
+            <select id="prodCategory" class="form-input" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Product Name *</label>
+            <input type="text" id="prodName" class="form-input" placeholder="e.g. Vanilla Cold Foam Latte" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Price (THB) *</label>
+            <input type="number" step="0.5" id="prodPrice" class="form-input" placeholder="e.g. 95.00" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="prodDesc" class="form-input" rows="2" placeholder="Tasting notes..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Image URL</label>
+            <input type="url" id="prodImg" class="form-input" placeholder="https://...">
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button type="submit" class="btn-primary" style="flex: 1;">Save Product</button>
+            <button type="button" onclick="closeNewProductModal()" class="btn-primary" style="flex: 1; background: var(--border-light); color: var(--coffee-dark); box-shadow: none;">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/toast.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    function saveAdminKey() {
+      const key = document.getElementById('adminKeyInput').value.trim();
+      Api.setAdminKey(key);
+      Toast.success('Admin key saved!');
+      loadAdminOrders();
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tabOrdersBtn').classList.toggle('active', tab === 'orders');
+      document.getElementById('tabProductsBtn').classList.toggle('active', tab === 'products');
+      document.getElementById('sectionOrders').style.display = tab === 'orders' ? 'block' : 'none';
+      document.getElementById('sectionProducts').style.display = tab === 'products' ? 'block' : 'none';
+
+      if (tab === 'orders') loadAdminOrders();
+      if (tab === 'products') loadAdminProducts();
+    }
+
+    async function loadAdminOrders() {
+      const tbody = document.getElementById('ordersTableBody');
+      const filter = document.getElementById('filterOrderStatus').value;
+
+      try {
+        const res = await Api.getAdminOrders({ status: filter || undefined });
+        const orders = res.items || [];
+
+        if (orders.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">No orders found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = orders.map(o => {
+          const itemsText = o.items.map(it => `<div>• ${it.product_name || `Item #${it.product_id}`} × ${it.quantity}</div>`).join('');
+          
+          return `
+            <tr>
+              <td><strong>#${o.id}</strong></td>
+              <td style="font-size: 12px; color: var(--text-muted);">${new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</td>
+              <td>
+                <div style="font-weight: 600;">${o.customer_name}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">${o.customer_email}</div>
+              </td>
+              <td>${itemsText}</td>
+              <td><strong>฿${Number(o.total_amount).toFixed(2)}</strong></td>
+              <td>
+                <select class="status-select status-${o.status.toLowerCase()}" onchange="changeStatus(${o.id}, this.value)">
+                  <option value="PENDING" ${o.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                  <option value="CONFIRMED" ${o.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                  <option value="PREPARING" ${o.status === 'PREPARING' ? 'selected' : ''}>PREPARING</option>
+                  <option value="READY" ${o.status === 'READY' ? 'selected' : ''}>READY</option>
+                  <option value="COMPLETED" ${o.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+                  <option value="CANCELLED" ${o.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+                </select>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--accent-red);">Failed to load orders: ${err.message}. Please check your Admin Key.</td></tr>`;
+      }
+    }
+
+    async function changeStatus(orderId, newStatus) {
+      try {
+        await Api.updateOrderStatus(orderId, newStatus);
+        Toast.success(`Order #${orderId} updated to ${newStatus}`);
+        loadAdminOrders();
+      } catch (err) {
+        Toast.error(err.message);
+        loadAdminOrders();
+      }
+    }
+
+    async function loadAdminProducts() {
+      const tbody = document.getElementById('productsTableBody');
+      try {
+        const res = await Api.getProducts({ limit: 100 });
+        const prods = res.items || [];
+
+        tbody.innerHTML = prods.map(p => `
+          <tr>
+            <td>#${p.id}</td>
+            <td>
+              <strong>${p.name}</strong>
+              <div style="font-size: 12px; color: var(--text-muted);">${p.description || ''}</div>
+            </td>
+            <td>฿${Number(p.price).toFixed(2)}</td>
+            <td style="font-size: 12px; color: var(--text-secondary);">${p.options ? Object.keys(p.options).join(', ') : 'Standard'}</td>
+            <td>
+              <span class="badge-status ${p.is_available ? 'status-ready' : 'status-cancelled'}">
+                ${p.is_available ? 'Available' : 'Disabled'}
+              </span>
+            </td>
+            <td>
+              <button onclick="toggleProduct(${p.id}, ${!p.is_available})" style="padding: 4px 10px; font-size: 11px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); cursor: pointer;">
+                ${p.is_available ? 'Disable' : 'Enable'}
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--accent-red);">${err.message}</td></tr>`;
+      }
+    }
+
+    async function toggleProduct(productId, newState) {
+      try {
+        await Api.updateProduct(productId, { is_available: newState });
+        Toast.success(`Product #${productId} availability updated.`);
+        loadAdminProducts();
+      } catch (err) {
+        Toast.error(err.message);
+      }
+    }
+
+    async function openNewProductModal() {
+      const modal = document.getElementById('newProductModal');
+      const catSelect = document.getElementById('prodCategory');
+      try {
+        const cats = await Api.getCategories();
+        catSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        modal.classList.add('active');
+      } catch (err) {
+        Toast.error('Could not load categories');
+      }
+    }
+
+    function closeNewProductModal() {
+      document.getElementById('newProductModal').classList.remove('active');
+    }
+
+    document.getElementById('newProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        category_id: parseInt(document.getElementById('prodCategory').value),
+        name: document.getElementById('prodName').value.trim(),
+        price: parseFloat(document.getElementById('prodPrice').value),
+        description: document.getElementById('prodDesc').value.trim() || null,
+        image_url: document.getElementById('prodImg').value.trim() || null
+      };
+
+      try {
+        await Api.createProduct(payload);
+        Toast.success('Product created!');
+        closeNewProductModal();
+        loadAdminProducts();
+      } catch (err) {
+        Toast.error(err.message);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('adminKeyInput').value = Api.getAdminKey();
+      loadAdminOrders();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+# ─────────────────────────────────────────────────────────────
+#  Jino Café — Local Full Stack Docker Compose
+#  Runs: Frontend (Static), Backend (FastAPI), Worker (Service Bus)
+# ─────────────────────────────────────────────────────────────
+version: '3.8'
+
+services:
+  # 1. Backend REST API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jinocafe-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=Jino Café API
+      - APP_ENV=development
+      - DEBUG=true
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080
+      - DATABASE_URL=sqlite+aiosqlite:///./jinocafe_dev.db
+      - SERVICEBUS_QUEUE_NAME=order-created
+      - SERVICEBUS_CONNECTION_STRING=${SERVICEBUS_CONNECTION_STRING:-}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-dev-admin-key-change-this-in-production}
+    volumes:
+      - ./backend/jinocafe_dev.db:/app/jinocafe_dev.db
+    restart: unless-stopped
+
+  # 2. Asynchronous Background Worker
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: jinocafe-worker
+    environment:
+      - SERVICEBUS_QUEUE_NAME=order-created
+      - SERVICEBUS_CONNECTION_STRING=${SERVICEBUS_CONNECTION_STRING:-}
+      - SERVICEBUS_NAMESPACE=${SERVICEBUS_NAMESPACE:-}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # 3. Frontend Static Web App (Served via Nginx)
+  frontend:
+    image: nginx:alpine
+    container_name: jinocafe-frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped

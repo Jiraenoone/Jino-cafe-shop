@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — Jino Café</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 36px;
+      padding: 40px 0 80px;
+    }
+
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-section-title {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--coffee-dark);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--coffee-dark);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      font-family: var(--font-sans);
+      font-size: 15px;
+      color: var(--text-primary);
+      background: var(--bg-cream);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent-caramel);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(199, 125, 50, 0.15);
+    }
+
+    .order-summary-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 14px;
+    }
+
+    .order-summary-item:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 860px) {
+      .checkout-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header / Navbar ─────────────────────────────────── -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">☕</div>
+        <div>
+          <span class="brand-text">Jino Café</span>
+          <span class="brand-badge">Checkout</span>
+        </div>
+      </a>
+      <a href="index.html" class="nav-link">← Back to Menu</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="checkout-layout">
+      <!-- Left: Customer Information Form -->
+      <section class="form-card">
+        <h2 class="form-section-title">
+          <span>📋</span> Customer & Pickup Details
+        </h2>
+        <form id="checkoutForm">
+          <div class="form-group">
+            <label class="form-label" for="customerName">Full Name *</label>
+            <input type="text" id="customerName" class="form-input" placeholder="e.g. John Doe" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="customerEmail">Email Address (for order confirmation & status) *</label>
+            <input type="email" id="customerEmail" class="form-input" placeholder="e.g. john@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="customerPhone">Phone Number</label>
+            <input type="tel" id="customerPhone" class="form-input" placeholder="e.g. 081-234-5678">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="orderNotes">Order Notes / Dietary Requests</label>
+            <textarea id="orderNotes" class="form-input" rows="3" placeholder="e.g. Separate syrups, extra cup holder, pickup in 15 mins"></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btnSubmitOrder" style="margin-top: 24px;">
+            <span>Confirm & Place Order →</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Right: Order Summary -->
+      <aside class="form-card" style="height: fit-content;">
+        <h2 class="form-section-title">
+          <span>☕</span> Order Summary
+        </h2>
+        
+        <div id="checkoutItemsList">
+          <!-- Injected via JS -->
+        </div>
+
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-light);">
+          <div class="cart-summary-row">
+            <span>Subtotal</span>
+            <span id="checkoutSubtotal">฿0.00</span>
+          </div>
+          <div class="cart-summary-row">
+            <span>Estimated Wait</span>
+            <span>~5-10 mins</span>
+          </div>
+          <div class="cart-summary-row total">
+            <span>Grand Total</span>
+            <span id="checkoutGrandTotal" style="color: var(--accent-caramel);">฿0.00</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="js/toast.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/cart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      Cart.load();
+
+      if (Cart.items.length === 0) {
+        alert('Your cart is empty! Please choose your drinks first.');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      // Render checkout summary
+      const listContainer = document.getElementById('checkoutItemsList');
+      let html = '';
+      Cart.items.forEach(item => {
+        const opts = item.selected_options && Object.keys(item.selected_options).length > 0
+          ? Object.entries(item.selected_options).map(([k, v]) => `${v}`).join(', ')
+          : '';
+
+        html += `
+          <div class="order-summary-item">
+            <div>
+              <div style="font-weight: 700; color: var(--coffee-dark);">${item.name} × ${item.quantity}</div>
+              ${opts ? `<div style="font-size: 12px; color: var(--text-muted);">${opts}</div>` : ''}
+            </div>
+            <div style="font-weight: 700;">฿${(item.unit_price * item.quantity).toFixed(2)}</div>
+          </div>
+        `;
+      });
+      listContainer.innerHTML = html;
+
+      const total = Cart.getTotal();
+      document.getElementById('checkoutSubtotal').textContent = `฿${total.toFixed(2)}`;
+      document.getElementById('checkoutGrandTotal').textContent = `฿${total.toFixed(2)}`;
+
+      // Form submission
+      const form = document.getElementById('checkoutForm');
+      const submitBtn = document.getElementById('btnSubmitOrder');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('customerName').value.trim();
+        const email = document.getElementById('customerEmail').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
+        const notes = document.getElementById('orderNotes').value.trim();
+
+        if (!name || !email) {
+          Toast.error('Please fill in your name and email.');
+          return;
+        }
+
+        submitBtn.setAttribute('disabled', 'true');
+        submitBtn.innerHTML = '<span>Processing Order... ⏳</span>';
+
+        const orderPayload = {
+          customer_name: name,
+          customer_email: email,
+          customer_phone: phone || null,
+          notes: notes || null,
+          items: Cart.items.map(item => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            selected_options: item.selected_options || null,
+            notes: item.notes || null
+          }))
+        };
+
+        try {
+          const res = await Api.createOrder(orderPayload);
+          Cart.clear();
+          Toast.success('Order placed successfully!');
+          setTimeout(() => {
+            window.location.href = `confirmation.html?id=${res.id}&email=${encodeURIComponent(email)}`;
+          }, 600);
+        } catch (err) {
+          Toast.error(`Failed to place order: ${err.message}`);
+          submitBtn.removeAttribute('disabled');
+          submitBtn.innerHTML = '<span>Confirm & Place Order →</span>';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

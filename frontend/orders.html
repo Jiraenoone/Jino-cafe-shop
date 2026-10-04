@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Order Tracking — Jino Café</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .tracking-card {
+      max-width: 720px;
+      margin: 40px auto 80px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 36px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .search-order-form {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr auto;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    @media (max-width: 640px) {
+      .search-order-form {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header / Navbar ─────────────────────────────────── -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">☕</div>
+        <div>
+          <span class="brand-text">Jino Café</span>
+          <span class="brand-badge">Tracker</span>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-link">Menu</a></li>
+        <li><a href="orders.html" class="nav-link active">Order Status</a></li>
+        <li><a href="admin/index.html" class="nav-link">Staff Admin</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="tracking-card">
+      <h1 class="hero-title" style="font-size: 26px; text-align: center; margin-bottom: 24px;">
+        Track Your Café Order
+      </h1>
+
+      <!-- Lookup Form -->
+      <form class="search-order-form" id="orderLookupForm">
+        <input type="number" id="lookupId" class="search-box" style="padding: 12px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md);" placeholder="Order ID (e.g. 1)" required>
+        <input type="email" id="lookupEmail" class="search-box" style="padding: 12px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md);" placeholder="Email used for order" required>
+        <button type="submit" class="btn-primary" style="padding: 12px 24px; width: auto;">
+          <span>Track</span>
+        </button>
+      </form>
+
+      <!-- Order Details Area (Hidden by default until loaded) -->
+      <div id="orderDetailsArea" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 16px;">
+          <div>
+            <h2 id="orderTicketTitle" style="font-family: var(--font-serif); font-size: 20px; color: var(--coffee-dark);">
+              Order #...
+            </h2>
+            <p id="orderCustomerInfo" style="font-size: 13px; color: var(--text-muted);"></p>
+          </div>
+          <div>
+            <span id="orderStatusBadge" class="badge-status status-pending">PENDING</span>
+          </div>
+        </div>
+
+        <!-- Visual Timeline -->
+        <div class="timeline" id="statusTimeline">
+          <div class="timeline-step" data-step="PENDING">
+            <div class="step-bubble">1</div>
+            <div class="step-label">Received</div>
+          </div>
+          <div class="timeline-step" data-step="CONFIRMED">
+            <div class="step-bubble">2</div>
+            <div class="step-label">Confirmed</div>
+          </div>
+          <div class="timeline-step" data-step="PREPARING">
+            <div class="step-bubble">3</div>
+            <div class="step-label">Brewing</div>
+          </div>
+          <div class="timeline-step" data-step="READY">
+            <div class="step-bubble">4</div>
+            <div class="step-label">Ready</div>
+          </div>
+          <div class="timeline-step" data-step="COMPLETED">
+            <div class="step-bubble">5</div>
+            <div class="step-label">Collected</div>
+          </div>
+        </div>
+
+        <!-- Items Ordered -->
+        <div style="margin-top: 30px;">
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--coffee-dark); margin-bottom: 12px;">Items in this Order</h3>
+          <div id="orderItemsSummaryList" style="border-top: 1px solid var(--border-light);"></div>
+          
+          <div class="cart-summary-row total" style="margin-top: 16px;">
+            <span>Total Paid</span>
+            <span id="orderTotalPaid" style="color: var(--accent-caramel);">฿0.00</span>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 28px;">
+          <button id="btnAutoRefresh" class="btn-primary" style="background: var(--bg-subtle); color: var(--coffee-dark); border: 1px solid var(--border-light); box-shadow: none; display: inline-flex; width: auto; padding: 10px 20px; font-size: 13px;">
+            <span>🔄 Refresh Status</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Not Found / Error Banner -->
+      <div id="lookupErrorState" class="empty-state" style="display: none;">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Order Not Found</div>
+        <p class="empty-desc">Check your Order ID and the exact email address used at checkout.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/toast.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const STATUS_FLOW = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'COMPLETED'];
+
+    async function loadOrder(orderId, email) {
+      const detailsArea = document.getElementById('orderDetailsArea');
+      const errArea = document.getElementById('lookupErrorState');
+
+      try {
+        const order = await Api.getOrder(orderId, email);
+        errArea.style.display = 'none';
+        detailsArea.style.display = 'block';
+
+        // Fill basic info
+        document.getElementById('orderTicketTitle').textContent = `Order Ticket #${order.id}`;
+        document.getElementById('orderCustomerInfo').textContent = `${order.customer_name} (${order.customer_email}) • ${new Date(order.created_at).toLocaleString()}`;
+        document.getElementById('orderTotalPaid').textContent = `฿${Number(order.total_amount).toFixed(2)}`;
+
+        // Status badge
+        const badge = document.getElementById('orderStatusBadge');
+        badge.className = `badge-status status-${order.status.toLowerCase()}`;
+        badge.textContent = order.status;
+
+        // Timeline
+        const currentIdx = STATUS_FLOW.indexOf(order.status);
+        const steps = document.querySelectorAll('.timeline-step');
+        steps.forEach((step, idx) => {
+          step.classList.remove('completed', 'active');
+          if (order.status === 'CANCELLED') {
+            // Cancelled
+          } else if (idx < currentIdx) {
+            step.classList.add('completed');
+          } else if (idx === currentIdx) {
+            step.classList.add('active');
+          }
+        });
+
+        // Items
+        const itemsList = document.getElementById('orderItemsSummaryList');
+        itemsList.innerHTML = order.items.map(it => {
+          const opts = it.selected_options && Object.keys(it.selected_options).length > 0
+            ? Object.entries(it.selected_options).map(([k, v]) => `${v}`).join(', ')
+            : 'Standard';
+
+          return `
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px;">
+              <div>
+                <strong>${it.product_name || `Product #${it.product_id}`} × ${it.quantity}</strong>
+                <div style="font-size: 12px; color: var(--text-muted);">${opts}</div>
+              </div>
+              <div style="font-weight: 700;">฿${(it.unit_price * it.quantity).toFixed(2)}</div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        detailsArea.style.display = 'none';
+        errArea.style.display = 'block';
+        Toast.error(err.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlId = urlParams.get('id');
+      const urlEmail = urlParams.get('email');
+
+      if (urlId && urlEmail) {
+        document.getElementById('lookupId').value = urlId;
+        document.getElementById('lookupEmail').value = urlEmail;
+        loadOrder(urlId, urlEmail);
+      }
+
+      document.getElementById('orderLookupForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('lookupId').value.trim();
+        const email = document.getElementById('lookupEmail').value.trim();
+        loadOrder(id, email);
+      });
+
+      document.getElementById('btnAutoRefresh').addEventListener('click', () => {
+        const id = document.getElementById('lookupId').value.trim();
+        const email = document.getElementById('lookupEmail').value.trim();
+        if (id && email) {
+          loadOrder(id, email);
+          Toast.info('Status updated!');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

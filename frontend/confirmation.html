@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmed — Jino Café</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .confirm-container {
+      max-width: 600px;
+      margin: 60px auto 100px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 48px 36px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+    }
+
+    .success-icon-wrap {
+      width: 80px;
+      height: 80px;
+      background: #E8F5E9;
+      color: #2E7D32;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      margin: 0 auto 24px;
+      animation: pop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .order-id-badge {
+      display: inline-block;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-light);
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      color: var(--coffee-dark);
+      font-size: 15px;
+      margin: 16px 0;
+    }
+
+    .cloud-architecture-notice {
+      background: var(--bg-warm-tint);
+      border-left: 4px solid var(--accent-caramel);
+      padding: 16px 20px;
+      border-radius: var(--radius-sm);
+      text-align: left;
+      font-size: 13px;
+      color: var(--coffee-dark);
+      margin: 28px 0;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">☕</div>
+        <span class="brand-text">Jino Café</span>
+      </a>
+      <a href="index.html" class="nav-link">Menu</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="confirm-container">
+      <div class="success-icon-wrap">✓</div>
+      <h1 class="hero-title" style="font-size: 30px; margin-bottom: 8px;">Order Placed Successfully!</h1>
+      <p style="color: var(--text-secondary); font-size: 15px;">Thank you for ordering with Jino Café. Your barista has received your ticket.</p>
+
+      <div class="order-id-badge" id="orderBadge">Order #...</div>
+
+      <!-- Cloud Architecture explanation for the university assignment -->
+      <div class="cloud-architecture-notice">
+        <strong>⚡ Cloud-Native Async Processing Demo:</strong>
+        <p style="margin-top: 4px; color: var(--text-secondary);">
+          Your order was written to <strong>Azure SQL</strong> and immediately queued via <strong>Azure Service Bus</strong>. The background worker container has picked it up asynchronously without blocking your connection.
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+        <a id="trackOrderBtn" href="#" class="btn-primary">
+          <span>Track Live Order Status →</span>
+        </a>
+        <a href="index.html" class="btn-primary" style="background: transparent; color: var(--coffee-dark); border: 1px solid var(--border-light); box-shadow: none;">
+          <span>Back to Menu</span>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('id');
+      const email = urlParams.get('email');
+
+      if (orderId) {
+        document.getElementById('orderBadge').textContent = `Order Ticket #${orderId}`;
+        const trackBtn = document.getElementById('trackOrderBtn');
+        trackBtn.href = `orders.html?id=${orderId}&email=${encodeURIComponent(email || '')}`;
+      } else {
+        document.getElementById('orderBadge').textContent = 'Order Ticket Received';
+      }
+    });
+  </script>
+</body>
+</html>
