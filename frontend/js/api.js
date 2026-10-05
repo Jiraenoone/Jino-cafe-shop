@@ -5,7 +5,7 @@
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:8000/api'
-  : '/api'; // In Azure SWA with linked backend or reverse proxy
+  : 'https://ca-jinocafe-api.wonderfulfield-94b07042.eastasia.azurecontainerapps.io/api';
 
 const ADMIN_KEY_STORAGE = 'jinocafe_admin_key';
 
